@@ -19,7 +19,6 @@ import {
     updateDoc, 
     deleteDoc,
     query,
-    where,
     orderBy,
     serverTimestamp,
     writeBatch,
@@ -30,12 +29,12 @@ import {
 // --- FIREBASE CONFIGURATION ---
 // TODO: Ganti dengan konfigurasi proyek Firebase Anda
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_API_KEY,
-  authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_APP_ID
+  apiKey: "AIzaSyAmWwwjnlzxFaBTctbmYeSNFoVYDI-eqW0",
+  authDomain: "artoqu-1.firebaseapp.com",
+  projectId: "artoqu-1",
+  storageBucket: "artoqu-1.firebasestorage.app",
+  messagingSenderId: "426010775421",
+  appId: "1:426010775421:web:c49e411ecd1f2181210614"
 };
 
 // Initialize Firebase
@@ -165,7 +164,7 @@ const AuthPage = ({ setModalContent }) => {
                 <div className="text-center mb-8">
                     {/* Ganti H1 dengan tag img untuk logo */}
                     <img 
-                        src="/logo192.png" // Path ke file di folder public 
+                        src="/logo192.png" 
                         alt="ArtoQu Logo" 
                         className="w-48 mx-auto"
                         // Ganti dengan URL logo Anda yang sudah di-hosting
@@ -319,7 +318,7 @@ const HomePage = ({ setPage, wallets, transactions, debts, userData, setModalCon
             <div>
                 <div className="flex justify-between items-center mb-2">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-white">Riwayat Transaksi</h2>
-                    <a onClick={() => setPage('history')} className="text-sm text-purple-600 dark:text-purple-400 font-semibold cursor-pointer">Lihat Semua</a>
+                    <button onClick={() => setPage('history')} className="text-sm text-purple-600 dark:text-purple-400 font-semibold cursor-pointer">Lihat Semua</button>
                 </div>
                 <div className="space-y-3">
                     {recentTransactions.map(tx => {
