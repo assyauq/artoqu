@@ -1521,7 +1521,8 @@ export default function App() {
     const [modalContent, setModalContent] = useState(null);
 
     useEffect(() => {
-        const faviconUrl = "http://googleusercontent.com/file_content/1";
+        document.title = "ArtoQu";
+        const faviconUrl = "/favicon.ico"; // Path to your favicon in the public folder
         let link = document.querySelector("link[rel~='icon']");
         if (!link) {
             link = document.createElement('link');
