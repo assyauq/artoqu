@@ -29,12 +29,12 @@ import {
 // --- FIREBASE CONFIGURATION ---
 // TODO: Ganti dengan konfigurasi proyek Firebase Anda
 const firebaseConfig = {
-  apiKey: "AIzaSyAmWwwjnlzxFaBTctbmYeSNFoVYDI-eqW0",
-  authDomain: "artoqu-1.firebaseapp.com",
-  projectId: "artoqu-1",
-  storageBucket: "artoqu-1.firebasestorage.app",
-  messagingSenderId: "426010775421",
-  appId: "1:426010775421:web:c49e411ecd1f2181210614"
+  apiKey: process.env.REACT_APP_API_KEY,
+  authDomain: process.env.REACT_APP_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_APP_ID
 };
 
 // Initialize Firebase
