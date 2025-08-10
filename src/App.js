@@ -29,12 +29,12 @@ import {
 // --- FIREBASE CONFIGURATION ---
 // TODO: Ganti dengan konfigurasi proyek Firebase Anda
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_API_KEY,
-  authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_APP_ID
+  apiKey: "AIzaSyAmWwwjnlzxFaBTctbmYeSNFoVYDI-eqW0",
+  authDomain: "artoqu-1.firebaseapp.com",
+  projectId: "artoqu-1",
+  storageBucket: "artoqu-1.firebasestorage.app",
+  messagingSenderId: "426010775421",
+  appId: "1:426010775421:web:c49e411ecd1f2181210614"
 };
 
 // Initialize Firebase
@@ -608,7 +608,10 @@ const DebtPage = ({ setPage, debts, addDebt, setModalContent, wallets, processDe
     const totalLoanAmount = useMemo(() => debts.reduce((sum, debt) => sum + debt.totalLoan, 0), [debts]);
     const totalPaidDebt = useMemo(() => debts.reduce((sum, debt) => sum + debt.paidInstallments * debt.installment, 0), [debts]);
     const totalRemainingDebt = totalLoanAmount - totalPaidDebt;
-    const paidPercentage = totalLoanAmount > 0 ? Math.round((totalPaidDebt / totalLoanAmount) * 100) : 0;
+    const paidPercentage = useMemo(() => {
+        const raw = totalLoanAmount > 0 ? (totalPaidDebt / totalLoanAmount) * 100 : 0;
+        return Math.round(Math.min(raw, 100));
+    }, [totalLoanAmount, totalPaidDebt]);
 
     const totalInstallmentThisMonth = useMemo(() => {
         const today = new Date();
@@ -640,7 +643,11 @@ const DebtPage = ({ setPage, debts, addDebt, setModalContent, wallets, processDe
     }, [transactions]);
 
     const remainingInstallmentThisMonth = totalInstallmentThisMonth - paidInstallmentThisMonth;
-    const paidThisMonthPercentage = totalInstallmentThisMonth > 0 ? Math.round((paidInstallmentThisMonth / totalInstallmentThisMonth) * 100) : 0;
+    
+    const paidThisMonthPercentage = useMemo(() => {
+        const raw = totalInstallmentThisMonth > 0 ? (paidInstallmentThisMonth / totalInstallmentThisMonth) * 100 : 0;
+        return Math.round(Math.min(raw, 100));
+    }, [totalInstallmentThisMonth, paidInstallmentThisMonth]);
 
 
     const openAddDebtModal = () => {
