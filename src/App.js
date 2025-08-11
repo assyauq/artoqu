@@ -608,39 +608,79 @@ const DebtPage = ({ setPage, debts, addDebt, setModalContent, wallets, processDe
     const totalLoanAmount = useMemo(() => debts.reduce((sum, debt) => sum + debt.totalLoan, 0), [debts]);
     const totalPaidDebt = useMemo(() => debts.reduce((sum, debt) => sum + debt.paidInstallments * debt.installment, 0), [debts]);
     const totalRemainingDebt = totalLoanAmount - totalPaidDebt;
-    const paidPercentage = totalLoanAmount > 0 ? Math.round((totalPaidDebt / totalLoanAmount) * 100) : 0;
+    const paidPercentage = useMemo(() => {
+        const raw = totalLoanAmount > 0 ? (totalPaidDebt / totalLoanAmount) * 100 : 0;
+        return Math.round(Math.min(raw, 100));
+    }, [totalLoanAmount, totalPaidDebt]);
+
+    // --- LOGIKA BARU UNTUK PERHITUNGAN ANGSURAN BULAN INI ---
+    const debtsDueThisMonth = useMemo(() => {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        return debts.filter(debt => {
+            if (!debt.startDate) return false;
+            if (debt.paidInstallments >= debt.tenor) return false;
+
+            const startDate = debt.startDate.toDate();
+            
+            // Determine the month and year of the first payment
+            let firstPaymentYear = startDate.getFullYear();
+            let firstPaymentMonth = startDate.getMonth();
+            if (startDate.getDate() > debt.dueDate) {
+                firstPaymentMonth += 1;
+                if (firstPaymentMonth > 11) {
+                    firstPaymentMonth = 0;
+                    firstPaymentYear += 1;
+                }
+            }
+
+            // Determine the month and year of the last payment
+            const lastPaymentDate = new Date(firstPaymentYear, firstPaymentMonth + debt.tenor - 1, 1);
+            const lastPaymentYear = lastPaymentDate.getFullYear();
+            const lastPaymentMonth = lastPaymentDate.getMonth();
+
+            // Check if the current month falls within the payment period
+            const isAfterStart = currentYear > firstPaymentYear || (currentYear === firstPaymentYear && currentMonth >= firstPaymentMonth);
+            const isBeforeEnd = currentYear < lastPaymentYear || (currentYear === lastPaymentYear && currentMonth <= lastPaymentMonth);
+            
+            return isAfterStart && isBeforeEnd;
+        });
+    }, [debts]);
 
     const totalInstallmentThisMonth = useMemo(() => {
-        const today = new Date();
-        return debts.reduce((sum, debt) => {
-            const startDate = debt.startDate.toDate();
-            const endDate = new Date(startDate);
-            endDate.setMonth(startDate.getMonth() + debt.tenor);
-            if (today >= startDate && today <= endDate && debt.paidInstallments < debt.tenor) {
-                return sum + debt.installment;
-            }
-            return sum;
-        }, 0);
-    }, [debts]);
+        return debtsDueThisMonth.reduce((sum, debt) => sum + debt.installment, 0);
+    }, [debtsDueThisMonth]);
     
     const paidInstallmentThisMonth = useMemo(() => {
         const today = new Date();
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
         
+        // Dapatkan nama-nama hutang yang jatuh tempo bulan ini
+        const dueDebtNames = debtsDueThisMonth.map(d => d.name);
+
         return transactions
             .filter(tx => {
                 const txDate = tx.date.toDate();
+                // Filter transaksi pembayaran hutang di bulan ini
                 return tx.type === 'expense' && 
                        tx.category === 'Hutang' &&
                        txDate.getMonth() === currentMonth &&
-                       txDate.getFullYear() === currentYear;
+                       txDate.getFullYear() === currentYear &&
+                       // Pastikan nama transaksi cocok dengan salah satu hutang yang jatuh tempo
+                       dueDebtNames.some(debtName => tx.name.includes(debtName));
             })
             .reduce((sum, tx) => sum + tx.amount, 0);
-    }, [transactions]);
+    }, [transactions, debtsDueThisMonth]);
 
     const remainingInstallmentThisMonth = totalInstallmentThisMonth - paidInstallmentThisMonth;
-    const paidThisMonthPercentage = totalInstallmentThisMonth > 0 ? Math.round((paidInstallmentThisMonth / totalInstallmentThisMonth) * 100) : 0;
+    
+    const paidThisMonthPercentage = useMemo(() => {
+        const raw = totalInstallmentThisMonth > 0 ? (paidInstallmentThisMonth / totalInstallmentThisMonth) * 100 : 0;
+        return Math.round(Math.min(raw, 100)); // BUG FIX: Batasi persentase maksimal 100%
+    }, [totalInstallmentThisMonth, paidInstallmentThisMonth]);
 
 
     const openAddDebtModal = () => {
@@ -677,17 +717,15 @@ const DebtPage = ({ setPage, debts, addDebt, setModalContent, wallets, processDe
                 </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm mb-6 border border-gray-200 dark:border-gray-700">
-                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-gray-800 dark:text-gray-100 mb-1">Total Angsuran Bulan Ini</h3>
-                    <span className="font-semibold text-sm text-gray-600 dark:text-gray-300">{paidThisMonthPercentage}%</span>
-                </div>
-                <div className="flex justify-between items-end">
-                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{formatCurrency(totalInstallmentThisMonth)}</p>
-                    {remainingInstallmentThisMonth > 0 && <p className="text-sm text-red-500">Kurang: {formatCurrency(remainingInstallmentThisMonth)}</p>}
-                </div>
-                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+            <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-md space-y-2 mb-6 border border-gray-200 dark:border-gray-700">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Hutang Bulan Ini</p>
+                <p className="text-2xl font-bold text-red-500">{formatCurrency(totalInstallmentThisMonth)}</p>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 my-1">
                     <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${paidThisMonthPercentage}%` }}></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{paidThisMonthPercentage}% dibayar</span>
+                    <span>Kurang: {formatCurrency(remainingInstallmentThisMonth < 0 ? 0 : remainingInstallmentThisMonth)}</span>
                 </div>
             </div>
 
@@ -862,8 +900,31 @@ const PaymentSourceModal = ({ debt, wallets, onPay, closeModal }) => {
 
 const AddDebtForm = ({ addDebt, closeModal, userId }) => {
     const [formData, setFormData] = useState({
-        name: '', totalLoan: '', installment: '', tenor: '', paidInstallments: '0', startDate: new Date().toISOString().slice(0, 10), dueDate: '15'
+        name: '', totalLoan: '', installment: '', tenor: '', startDate: new Date().toISOString().slice(0, 10), dueDate: '15', paidInstallments: '0'
     });
+
+    useEffect(() => {
+        if (!formData.startDate || !formData.dueDate || !formData.tenor) return;
+
+        const startDate = new Date(formData.startDate);
+        const today = new Date();
+        const dueDate = parseInt(formData.dueDate);
+        const tenor = parseInt(formData.tenor);
+        let autoPaidCount = 0;
+
+        for (let i = 0; i < tenor; i++) {
+            let dueDateForThisCycle = new Date(startDate.getFullYear(), startDate.getMonth() + i, dueDate);
+            if (i === 0 && startDate.getDate() > dueDate) {
+                dueDateForThisCycle.setMonth(dueDateForThisCycle.getMonth() + 1);
+            }
+            if (dueDateForThisCycle < today) {
+                autoPaidCount++;
+            }
+        }
+        setFormData(prev => ({ ...prev, paidInstallments: autoPaidCount.toString() }));
+
+    }, [formData.startDate, formData.dueDate, formData.tenor]);
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -879,13 +940,14 @@ const AddDebtForm = ({ addDebt, closeModal, userId }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
         addDebt({
             userId,
             name: formData.name,
             totalLoan: parseFloat(formData.totalLoan),
             installment: parseFloat(formData.installment),
             tenor: parseInt(formData.tenor),
-            paidInstallments: parseInt(formData.paidInstallments),
+            paidInstallments: parseInt(formData.paidInstallments), // Gunakan nilai dari form
             startDate: new Date(formData.startDate),
             dueDate: parseInt(formData.dueDate),
             createdAt: serverTimestamp()
